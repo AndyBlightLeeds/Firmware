@@ -205,8 +205,10 @@ rtps:
     id: 88
   - msg: vehicle_command
     id: 89
+    receive: true
   - msg: vehicle_command_ack
     id: 90
+    send: true
   - msg: vehicle_constraints
     id: 91
   - msg: vehicle_control_mode
@@ -215,8 +217,10 @@ rtps:
     id: 93
   - msg: vehicle_gps_position
     id: 94
+    send: true
   - msg: vehicle_land_detected
     id: 95
+    send: true
   - msg: vehicle_local_position
     id: 96
   - msg: vehicle_local_position_setpoint
