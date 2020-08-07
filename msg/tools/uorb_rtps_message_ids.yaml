@@ -175,6 +175,7 @@ rtps:
     id: 75
   - msg: telemetry_status
     id: 76
+    receive: true
   - msg: test_motor
     id: 77
   - msg: timesync
