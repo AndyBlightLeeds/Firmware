@@ -129,7 +129,6 @@ void RtpsTopics::publish(uint8_t topic_ID, char data_buffer[], size_t len)
 bool RtpsTopics::getMsg(const uint8_t topic_ID, eprosima::fastcdr::Cdr &scdr)
 {
     bool ret = false;
-    printf("getMsg: topic ID '%hhu'\n", topic_ID);
     switch (topic_ID)
     {
 @[for topic in recv_topics]@
