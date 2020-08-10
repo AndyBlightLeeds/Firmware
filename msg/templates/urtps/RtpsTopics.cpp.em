@@ -119,7 +119,7 @@ void RtpsTopics::publish(uint8_t topic_ID, char data_buffer[], size_t len)
         break;
 @[end for]@
         default:
-            printf("Unexpected topic ID %d to publish\n", topic_ID);
+            printf("Unexpected topic ID %hhu to publish\n", topic_ID);
         break;
     }
 }
@@ -129,6 +129,7 @@ void RtpsTopics::publish(uint8_t topic_ID, char data_buffer[], size_t len)
 bool RtpsTopics::getMsg(const uint8_t topic_ID, eprosima::fastcdr::Cdr &scdr)
 {
     bool ret = false;
+    printf("getMsg: topic ID '%hhu'\n", topic_ID);
     switch (topic_ID)
     {
 @[for topic in recv_topics]@
