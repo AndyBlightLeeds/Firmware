@@ -1872,6 +1872,31 @@ Commander::run()
 			}
 		}
 
+		{  // AJB DEBUG
+			// Track changes to status_flags.rc_input_blocked
+			static bool rc_blocked = true;  // To force inital print.
+			if (rc_blocked != status_flags.rc_input_blocked) {
+				rc_blocked = status_flags.rc_input_blocked;
+				mavlink_log_info(&mavlink_log_pub, "AJB: changed rc_blocked %d", rc_blocked);
+			}
+			// Track changes to _manual_control_setpoint
+			static bool last_mcs_timestamp_received = true;  // To force inital print.
+			bool mcs_timestamp_received = (_manual_control_setpoint.timestamp != 0);
+			if (last_mcs_timestamp_received != mcs_timestamp_received) {
+				mavlink_log_info(&mavlink_log_pub, "AJB: changed mcs_timestamp_received %d", mcs_timestamp_received);
+				last_mcs_timestamp_received = mcs_timestamp_received;
+			}
+			// Track changes to rc lost.
+			hrt_abstime max_loss_time = (_param_com_rc_loss_t.get() * 1_s);
+			hrt_abstime elapsed_time = hrt_elapsed_time(&_manual_control_setpoint.timestamp);
+			static bool last_mcs_timeout = true; // To force inital print.
+			bool mcs_timeout = elapsed_time < max_loss_time;
+			if (last_mcs_timeout != mcs_timeout) {
+				mavlink_log_info(&mavlink_log_pub, "AJB: changed mcs_timeout %d", mcs_timeout);
+				last_mcs_timeout = mcs_timeout;
+			}
+		}
+
 		/* RC input check */
 		if (!status_flags.rc_input_blocked && _manual_control_setpoint.timestamp != 0 &&
 		    (hrt_elapsed_time(&_manual_control_setpoint.timestamp) < (_param_com_rc_loss_t.get() * 1_s))) {
@@ -1894,6 +1919,7 @@ Commander::run()
 				}
 			}
 
+			mavlink_log_info(&mavlink_log_pub, "AJB: status.rc_signal_lost = false;");
 			status.rc_signal_lost = false;
 
 			const bool in_armed_state = (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
@@ -2120,18 +2146,18 @@ Commander::run()
 		 * Sometimes, the mission result topic is outdated and the mission is still signaled
 		 * as finished even though we only just started with the takeoff. Therefore, we also
 		 * check the timestamp of the mission_result topic. */
-		if (_internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_TAKEOFF
-		    && (_mission_result_sub.get().timestamp > _internal_state.timestamp)
-		    && _mission_result_sub.get().finished) {
-
+		if ((_internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_TAKEOFF) &&
+			(_mission_result_sub.get().timestamp > _internal_state.timestamp) &&
+			_mission_result_sub.get().finished) {
 			const bool mission_available = (_mission_result_sub.get().timestamp > _boot_timestamp)
-						       && (_mission_result_sub.get().instance_count > 0) && _mission_result_sub.get().valid;
+						&& (_mission_result_sub.get().instance_count > 0) && _mission_result_sub.get().valid;
 
 			if ((_param_takeoff_finished_action.get() == 1) && mission_available) {
 				main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_MISSION, status_flags, &_internal_state);
-
+				mavlink_log_info(&mavlink_log_pub, "AJB: Completed takeoff.  Starting mission...");
 			} else {
 				main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_LOITER, status_flags, &_internal_state);
+				mavlink_log_info(&mavlink_log_pub, "AJB: Completed takeoff.  Loitering...");
 			}
 		}
 

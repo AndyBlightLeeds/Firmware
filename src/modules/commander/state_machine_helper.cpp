@@ -84,6 +84,9 @@ const char *const arming_state_names[vehicle_status_s::ARMING_STATE_MAX] = {
 
 static hrt_abstime last_preflight_check = 0;	///< initialize so it gets checked immediately
 
+// AJB DEBUG
+static navigation_state_t set_nav_state_last_state = 0;
+
 void set_link_loss_nav_state(vehicle_status_s *status, actuator_armed_s *armed,
 			     const vehicle_status_flags_s &status_flags, commander_state_s *internal_state, const link_loss_actions_t link_loss_act);
 
@@ -402,6 +405,16 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 	bool is_armed = (status->arming_state == vehicle_status_s::ARMING_STATE_ARMED);
 	bool old_failsafe = status->failsafe;
 	status->failsafe = false;
+
+	{  // AJB DEBUG
+		// Logic added as this fucntion is called often.
+		if (set_nav_state_last_state != nav_state_old) {
+			mavlink_log_info(mavlink_log_pub, "AJB: set_nav_state: main_state %d, nav_state_old %d, rc_loss_act %d, rc_signal_lost %d",
+					internal_state->main_state, nav_state_old, static_cast<int>(rc_loss_act), status->rc_signal_lost);
+			set_nav_state_last_state = nav_state_old;
+		}
+
+	}
 
 	// Safe to do reset flags here, as if loss state persists flags will be restored in the code below
 	reset_link_loss_globals(armed, old_failsafe, rc_loss_act);

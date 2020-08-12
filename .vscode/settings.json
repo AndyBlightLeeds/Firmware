@@ -178,5 +178,9 @@
         "workbench.statusBar.feedback.visible": false,
         "yaml.schemas": {
                 "${workspaceRoot}/validation/module_schema.yaml": "${workspaceRoot}/src/modules/*/module.yaml"
-        }
+        },
+        "ros.distro": "eloquent",
+        "python.autoComplete.extraPaths": [
+                "/opt/ros/eloquent/lib/python3.6/site-packages"
+        ]
 }
