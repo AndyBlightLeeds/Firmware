@@ -1427,8 +1427,17 @@ Commander::run()
 		}
 
 #endif // BOARD_HAS_POWER_CONTROL
-
+#if 1  // AJB
+		if (_manual_control_setpoint_sub.updated()) {
+			// New message arrived.  Store the old one and update with the new message.
+			_last_manual_control_setpoint = _manual_control_setpoint;
+			_manual_control_setpoint_sub.copy(&_manual_control_setpoint);
+			// Set time of most recent message using local timestamp.
+			_manual_control_setpoint_local_timestamp = hrt_absolute_time();
+		}
+#else
 		_manual_control_setpoint_sub.update(&_manual_control_setpoint);
+#endif
 
 		offboard_control_update();
 
@@ -1871,38 +1880,59 @@ Commander::run()
 				mavlink_log_critical(&mavlink_log_pub, "Flight termination active");
 			}
 		}
-
-		{  // AJB DEBUG
-			// Track changes to status_flags.rc_input_blocked
-			static bool rc_blocked = true;  // To force inital print.
-			if (rc_blocked != status_flags.rc_input_blocked) {
-				rc_blocked = status_flags.rc_input_blocked;
-				mavlink_log_info(&mavlink_log_pub, "AJB: changed rc_blocked %d", rc_blocked);
-			}
-			// Track changes to _manual_control_setpoint
-			static bool last_mcs_timestamp_received = true;  // To force inital print.
-			bool mcs_timestamp_received = (_manual_control_setpoint.timestamp != 0);
-			if (last_mcs_timestamp_received != mcs_timestamp_received) {
-				mavlink_log_info(&mavlink_log_pub, "AJB: changed mcs_timestamp_received %d", mcs_timestamp_received);
-				last_mcs_timestamp_received = mcs_timestamp_received;
-			}
-			// Track changes to rc lost.
-			hrt_abstime max_loss_time = (_param_com_rc_loss_t.get() * 1_s);
-			hrt_abstime elapsed_time = hrt_elapsed_time(&_manual_control_setpoint.timestamp);
-			static bool last_mcs_timeout = true; // To force inital print.
-			bool mcs_timeout = elapsed_time < max_loss_time;
-			if (last_mcs_timeout != mcs_timeout) {
-				mavlink_log_info(&mavlink_log_pub, "AJB: changed mcs_timeout %d", mcs_timeout);
-				last_mcs_timeout = mcs_timeout;
-			}
+#if 1
+		// AJB DEBUG
+		// Track changes to status_flags.rc_input_blocked
+		static bool rc_blocked = true;  // To force inital print.
+		if (rc_blocked != status_flags.rc_input_blocked) {
+			rc_blocked = status_flags.rc_input_blocked;
+			mavlink_log_info(&mavlink_log_pub, "AJB: changed rc_blocked %d", rc_blocked);
 		}
+		// Track changes to _manual_control_setpoint
+		static bool last_mcs_timestamp_received = true;  // To force inital print.
+		bool mcs_timestamp_received = (_manual_control_setpoint.timestamp != 0);
+		if (last_mcs_timestamp_received != mcs_timestamp_received) {
+			mavlink_log_info(&mavlink_log_pub, "AJB: changed mcs_timestamp_received %d", mcs_timestamp_received);
+			last_mcs_timestamp_received = mcs_timestamp_received;
+		}
+		// Track changes to rc lost.
+		hrt_abstime max_loss_time_us = (_param_com_rc_loss_t.get() * 1_s);
+		// This compares a local time to an external time. This can
+		// give a negative result when the external timestamp is greater than the
+		// internal time. As uint64_t are being used, negative results wrap round so you
+		// end up with a masive positive value.
+		// hrt_abstime elapsed_time_us = hrt_elapsed_time(&_manual_control_setpoint.timestamp);
+		// _manual_control_setpoint_local_timestamp uses the same timestamp used by hrt_elapsed_time
+		// so works correctly.
+		hrt_abstime elapsed_time_us = hrt_elapsed_time(&_manual_control_setpoint_local_timestamp);
+		static bool last_mcs_timeout = true; // To force inital print.
+		bool mcs_timeout = elapsed_time_us > max_loss_time_us;
+		if (last_mcs_timeout != mcs_timeout) {
+			mavlink_log_info(&mavlink_log_pub, "AJB: max_loss_time_us %" PRIu64 ", changed mcs_timeout %d", max_loss_time_us, mcs_timeout);
+			last_mcs_timeout = mcs_timeout;
+		}
+		// Print debug less frequently
+		const int target_count = 40;
+		static int count = target_count;
+		if (count >= target_count) {
+			mavlink_log_info(&mavlink_log_pub,
+				"AJB: _manual_control_setpoint_local_timestamp %" PRIu64 ", elapsed_time_us %" PRIu64 "",
+				_manual_control_setpoint_local_timestamp, elapsed_time_us);
+			count = 0;
+		}
+		++count;
 
+		if (!rc_blocked && mcs_timestamp_received && !mcs_timeout) {
+
+#else
+		// AJB The original code.
 		/* RC input check */
 		if (!status_flags.rc_input_blocked && _manual_control_setpoint.timestamp != 0 &&
 		    (hrt_elapsed_time(&_manual_control_setpoint.timestamp) < (_param_com_rc_loss_t.get() * 1_s))) {
-
+#endif
 			/* handle the case where RC signal was regained */
 			if (!status_flags.rc_signal_found_once) {
+				mavlink_log_info(&mavlink_log_pub, "AJB: rc_signal_found_once = true");
 				status_flags.rc_signal_found_once = true;
 				set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true, status_flags.rc_calibration_valid, status);
 				_status_changed = true;
@@ -1918,9 +1948,14 @@ Commander::run()
 					_status_changed = true;
 				}
 			}
-
-			mavlink_log_info(&mavlink_log_pub, "AJB: status.rc_signal_lost = false;");
 			status.rc_signal_lost = false;
+#if 1
+			static bool last_rc_signal_lost = true;
+			if (last_rc_signal_lost != status.rc_signal_lost) {
+				mavlink_log_info(&mavlink_log_pub, "AJB: rc_signal_lost = false");
+				last_rc_signal_lost = status.rc_signal_lost;
+			}
+#endif
 
 			const bool in_armed_state = (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
 			const bool arm_switch_or_button_mapped =
@@ -2088,7 +2123,11 @@ Commander::run()
 			if (!status_flags.rc_input_blocked && !status.rc_signal_lost && status_flags.rc_signal_found_once) {
 				mavlink_log_critical(&mavlink_log_pub, "Manual control lost");
 				status.rc_signal_lost = true;
+#if 1
+				_rc_signal_lost_timestamp = _manual_control_setpoint_local_timestamp;
+#else
 				_rc_signal_lost_timestamp = _manual_control_setpoint.timestamp;
+#endif
 				set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true, false, status);
 				_status_changed = true;
 			}
