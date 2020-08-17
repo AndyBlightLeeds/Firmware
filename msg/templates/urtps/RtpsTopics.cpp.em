@@ -119,7 +119,7 @@ void RtpsTopics::publish(uint8_t topic_ID, char data_buffer[], size_t len)
         break;
 @[end for]@
         default:
-            printf("\033[1;33m[   micrortps_agent   ]\tUnexpected topic ID to publish\033[0m\n");
+            printf("\033[1;33m[   micrortps_agent   ]\tUnexpected topic ID %hhu to publish\033[0m\n", topic_id);
         break;
     }
 }
