@@ -71,7 +71,6 @@ Takeoff::on_active()
 		mission_apply_limitation(_mission_item);
 		mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 		_navigator->set_position_setpoint_triplet_updated();
-		mavlink_log_info(_navigator->get_mavlink_log_pub(), "AJB: Completed takeoff.  Loitering...");
 	}
 }
 

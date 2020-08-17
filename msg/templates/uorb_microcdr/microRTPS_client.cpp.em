@@ -207,7 +207,7 @@ void micrortps_start_topics(struct timespec &begin, uint64_t &total_read, uint64
                 break;
 @[end for]@
                 default:
-                    PX4_WARN("Unexpected topic ID %d\n", topic_ID);
+                    PX4_WARN("Unexpected topic ID %hhu received\n", topic_ID);
                 break;
             }
         }
