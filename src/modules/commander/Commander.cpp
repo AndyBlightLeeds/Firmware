@@ -1473,8 +1473,13 @@ Commander::run()
 		}
 
 #endif // BOARD_HAS_POWER_CONTROL
-
 		_manual_control_setpoint_sub.update(&_manual_control_setpoint);
+		// Set time of most recent message using local timestamp.
+		// When simulating using px4_ros_com, the timestamp of the PC can be much bigger
+		// than the internal timestamp. This causes the timestamp value to go massively
+		// positive (64 bit unsigned wrap around) when compared using hrt_elapsed_time()
+		// and causes the RC signal to be permanently lost.
+		_manual_control_setpoint_sub.timestamp = hrt_absolute_time();
 
 		offboard_control_update();
 
