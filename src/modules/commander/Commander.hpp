@@ -347,7 +347,6 @@ private:
 
 	manual_control_setpoint_s	_manual_control_setpoint{};		///< the current manual control setpoint
 	manual_control_setpoint_s	_last_manual_control_setpoint{};	///< the manual control setpoint valid at the last mode switch
-	hrt_abstime	_manual_control_setpoint_local_timestamp{0};
 	hrt_abstime	_rc_signal_lost_timestamp{0};		///< Time at which the RC reception was lost
 	int32_t		_flight_mode_slots[manual_control_setpoint_s::MODE_SLOT_NUM] {};
 	uint8_t		_last_manual_control_setpoint_arm_switch{0};

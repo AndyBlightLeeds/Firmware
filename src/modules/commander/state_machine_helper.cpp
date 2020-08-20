@@ -403,26 +403,6 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 	bool old_failsafe = status->failsafe;
 	status->failsafe = false;
 
-	{  // AJB DEBUG
-		// Logic added as this function is called often.
-		bool print = false;
-		static bool last_is_armed = false;
-		if (last_is_armed != is_armed) {
-			last_is_armed = is_armed;
-			print = true;
-		}
-		static navigation_state_t set_nav_state_last_state = 0;
-		if (set_nav_state_last_state != nav_state_old) {
-			set_nav_state_last_state = nav_state_old;
-			print = true;
-		}
-		if (print) {
-			mavlink_log_info(mavlink_log_pub, "AJB: set_nav_state: main_state %d,is_armed %d, rc_signal_lost %d",
-					internal_state->main_state, is_armed, status->rc_signal_lost);
-		}
-
-	}
-
 	// Safe to do reset flags here, as if loss state persists flags will be restored in the code below
 	reset_link_loss_globals(armed, old_failsafe, rc_loss_act);
 	reset_link_loss_globals(armed, old_failsafe, data_link_loss_act);
@@ -438,7 +418,6 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 
 		/* require RC for all manual modes */
 		if (rc_lost && is_armed) {
-			mavlink_log_info(mavlink_log_pub, "AJB: set_nav_state: main_state %d", internal_state->main_state);
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc);
 
 			set_link_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act);
@@ -476,7 +455,6 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 	case commander_state_s::MAIN_STATE_POSCTL: {
 
 			if (rc_lost && is_armed) {
-				mavlink_log_info(mavlink_log_pub, "AJB: set_nav_state: main_state %d", internal_state->main_state);
 				enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc);
 
 				set_link_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act);
@@ -556,7 +534,6 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 
 		} else if (rc_lost && !data_link_loss_act_configured && status->data_link_lost && is_armed) {
 			/* go into failsafe if RC is lost and datalink is lost and datalink loss is not set up */
-			mavlink_log_info(mavlink_log_pub, "AJB: set_nav_state: main_state %d", internal_state->main_state);
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc);
 
 			set_link_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act);
@@ -633,7 +610,6 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 
 		} else if (rc_lost && !data_link_loss_act_configured && is_armed) {
 			// failsafe: RC is lost, datalink loss is not set up and rc loss is not disabled
-			mavlink_log_info(mavlink_log_pub, "AJB: set_nav_state: main_state %d", internal_state->main_state);
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc);
 
 			set_link_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act);

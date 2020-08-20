@@ -203,6 +203,9 @@ void micrortps_start_topics(struct timespec &begin, uint64_t &total_read, uint64
                 {
                     deserialize_@(receive_base_types[idx])(&reader, &@(topic)_data, data_buffer);
 @[if topic == "manual_control_setpoint"]@
+                    // During simulation, the PC time is nearly always in advance of the PX4 time.
+                    // This causes logic in the Commander to think that the RC signal has been lost.
+                    // Using the PX4 time fixes this problem.
                     @(topic)_data.timestamp = hrt_absolute_time();
 @[end if]@
                     @(topic)_pub.publish(@(topic)_data);
