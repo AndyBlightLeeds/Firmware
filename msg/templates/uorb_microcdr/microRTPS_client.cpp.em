@@ -67,6 +67,7 @@ receive_base_types = [s.short_name for idx, s in enumerate(spec) if scope[idx] =
 
 #include <ucdr/microcdr.h>
 #include <px4_time.h>
+#include <drivers/drv_hrt.h>
 #include <uORB/uORB.h>
 
 #include <uORB/Publication.hpp>
@@ -201,6 +202,9 @@ void micrortps_start_topics(struct timespec &begin, uint64_t &total_read, uint64
                 case @(rtps_message_id(ids, topic)):
                 {
                     deserialize_@(receive_base_types[idx])(&reader, &@(topic)_data, data_buffer);
+@[if topic == "manual_control_setpoint"]@
+                    @(topic)_data.timestamp = hrt_absolute_time();
+@[end if]@
                     @(topic)_pub.publish(@(topic)_data);
                     ++received;
                 }
